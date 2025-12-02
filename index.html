@@ -78,21 +78,21 @@
         </template>
     </div>
 
-    <aside class="w-64 bg-white dark:bg-dark-surface border-r border-gray-200 dark:border-dark-border flex flex-col z-20 transition-colors duration-300">
-        <div class="h-16 flex items-center px-6 border-b border-gray-100 dark:border-dark-border gap-3">
+    <aside class="w-72 bg-white dark:bg-dark-surface border-r border-gray-200 dark:border-dark-border flex flex-col z-20 transition-colors duration-300">
+        <div class="h-16 flex items-center px-8 border-b border-gray-100 dark:border-dark-border gap-3">
             <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
                 <i class="fa-solid fa-bolt"></i>
             </div>
             <span class="font-bold text-lg tracking-tight">ProjectFlow</span>
         </div>
 
-        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav class="flex-1 p-6 space-y-2 overflow-y-auto">
             <template x-for="item in menuItems">
-                <button @click="currentView = item.id" 
-                    :class="currentView === item.id 
-                        ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400 font-semibold' 
+                <button @click="currentView = item.id"
+                    :class="currentView === item.id
+                        ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400 font-semibold'
                         : 'text-gray-500 dark:text-dark-textMuted hover:bg-gray-50 dark:hover:bg-gray-800/50'"
-                    class="w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all duration-200 group">
+                    class="w-full text-left px-5 py-3 rounded-lg flex items-center gap-3 transition-all duration-200 group">
                     <i :class="item.icon" class="w-5 text-center transition-transform group-hover:scale-110"></i>
                     <span x-text="item.label"></span>
                 </button>
@@ -119,7 +119,7 @@
 
     <main class="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-dark-bg transition-colors duration-300 relative">
         
-        <header class="h-16 bg-white/80 dark:bg-dark-surface/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-border px-6 flex justify-between items-center z-10 sticky top-0">
+        <header class="h-20 bg-white/80 dark:bg-dark-surface/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-border px-8 flex justify-between items-center z-10 sticky top-0">
             <div class="flex items-center gap-4">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white" x-text="menuItems.find(i => i.id === currentView).label"></h2>
                 
@@ -142,11 +142,11 @@
             </div>
         </header>
 
-        <div class="flex-1 overflow-auto p-6 scroll-smooth">
-            
-            <div x-show="currentView === 'dashboard'" x-transition:enter="fade-enter-active" x-transition:enter-start="fade-enter" x-cloak class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="bg-white dark:bg-dark-surface p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border flex items-center justify-between relative overflow-hidden group">
+        <div class="flex-1 overflow-auto p-8 scroll-smooth">
+
+            <div x-show="currentView === 'dashboard'" x-transition:enter="fade-enter-active" x-transition:enter-start="fade-enter" x-cloak class="space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div class="bg-white dark:bg-dark-surface p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border flex items-center justify-between relative overflow-hidden group">
                         <div class="absolute right-0 top-0 p-24 bg-primary-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
                         <div>
                             <div class="text-gray-500 dark:text-dark-textMuted text-sm font-medium mb-1">Taux de succès</div>
@@ -161,7 +161,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-dark-surface p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border group hover:border-primary-200 transition">
+                    <div class="bg-white dark:bg-dark-surface p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border group hover:border-primary-200 transition">
                         <div class="flex justify-between items-start">
                             <div>
                                 <div class="text-gray-500 dark:text-dark-textMuted text-sm font-medium">Tâches en cours</div>
@@ -171,7 +171,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-dark-surface p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border group hover:border-red-200 transition">
+                    <div class="bg-white dark:bg-dark-surface p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border group hover:border-red-200 transition">
                         <div class="flex justify-between items-start">
                             <div>
                                 <div class="text-gray-500 dark:text-dark-textMuted text-sm font-medium">Urgences absolues</div>
@@ -181,7 +181,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-dark-surface p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border group hover:border-purple-200 transition">
+                    <div class="bg-white dark:bg-dark-surface p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border group hover:border-purple-200 transition">
                          <div class="flex justify-between items-start">
                             <div>
                                 <div class="text-gray-500 dark:text-dark-textMuted text-sm font-medium">Contacts</div>
@@ -193,24 +193,24 @@
                 </div>
 
                 <div class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-100 dark:border-dark-border flex justify-between items-center">
-                        <h3 class="font-bold text-gray-800 dark:text-white">État du Portefeuille</h3>
+                    <div class="px-8 py-5 border-b border-gray-100 dark:border-dark-border flex justify-between items-center">
+                        <h3 class="font-bold text-gray-800 dark:text-white text-lg">État du Portefeuille</h3>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase font-semibold text-gray-500 dark:text-gray-400">
                                 <tr>
-                                    <th class="px-6 py-4">Projet</th>
-                                    <th class="px-6 py-4">Status</th>
-                                    <th class="px-6 py-4 w-1/3">Progression</th>
-                                    <th class="px-6 py-4 text-center">Reste</th>
-                                    <th class="px-6 py-4 text-right">Action</th>
+                                    <th class="px-8 py-5">Projet</th>
+                                    <th class="px-8 py-5">Status</th>
+                                    <th class="px-8 py-5 w-1/3">Progression</th>
+                                    <th class="px-8 py-5 text-center">Reste</th>
+                                    <th class="px-8 py-5 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-dark-border">
                                 <template x-for="p in filteredProjects" :key="p.id">
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition group">
-                                        <td class="px-6 py-4">
+                                        <td class="px-8 py-5">
                                             <div class="flex items-center gap-3">
                                                 <div class="w-2 h-10 rounded-full" :style="'background-color:'+p.color"></div>
                                                 <div>
@@ -219,7 +219,7 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-8 py-5">
                                             <span class="px-2.5 py-1 rounded-full text-xs font-medium border" 
                                                 :class="{
                                                     'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800': p.status==='Actif',
@@ -228,7 +228,7 @@
                                                     'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800': p.status==='Préparation'
                                                 }" x-text="p.status"></span>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-8 py-5">
                                             <div class="flex items-center gap-3">
                                                 <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                                                     <div class="h-full rounded-full transition-all duration-1000" :style="'width: '+getProjectProgress(p.id)+'%; background-color:'+p.color"></div>
@@ -236,10 +236,10 @@
                                                 <span class="text-xs font-bold w-8 text-right dark:text-gray-300" x-text="getProjectProgress(p.id)+'%'"></span>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4 text-center text-gray-500 dark:text-gray-400 text-xs">
+                                        <td class="px-8 py-5 text-center text-gray-500 dark:text-gray-400 text-xs">
                                             <span x-text="getRemainingDays(p.endDate)"></span>j
                                         </td>
-                                        <td class="px-6 py-4 text-right">
+                                        <td class="px-8 py-5 text-right">
                                             <button @click="openProjectModal(p)" class="text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition"><i class="fa-solid fa-pen"></i></button>
                                         </td>
                                     </tr>
@@ -250,9 +250,9 @@
                 </div>
             </div>
 
-            <div x-show="currentView === 'roadmap'" x-transition:enter="fade-enter-active" x-cloak class="space-y-6">
-                <div class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-6 overflow-x-auto">
-                    <h3 class="font-bold text-gray-800 dark:text-white mb-6">Timeline des Projets</h3>
+            <div x-show="currentView === 'roadmap'" x-transition:enter="fade-enter-active" x-cloak class="space-y-8">
+                <div class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-8 overflow-x-auto">
+                    <h3 class="font-bold text-gray-800 dark:text-white mb-8 text-lg">Timeline des Projets</h3>
                     <div class="min-w-[800px] space-y-8">
                         <template x-for="p in filteredProjects.filter(p => p.status !== 'Clôturé')" :key="p.id">
                             <div>
@@ -303,10 +303,10 @@
                     </template>
                 </div>
 
-                <div class="flex-1 flex gap-6 overflow-x-auto pb-4 h-full items-start">
+                <div class="flex-1 flex gap-8 overflow-x-auto pb-4 h-full items-start">
                     <template x-for="status in kanbanColumns" :key="status">
-                        <div class="min-w-[320px] w-[320px] flex flex-col bg-gray-100 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-dark-border max-h-full">
-                            <div class="p-3 font-bold text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800 rounded-t-xl sticky top-0 z-10">
+                        <div class="min-w-[380px] w-[380px] flex flex-col bg-gray-100 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-dark-border max-h-full">
+                            <div class="p-4 font-bold text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800 rounded-t-xl sticky top-0 z-10">
                                 <div class="flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full" :class="{
                                         'bg-gray-400': status=='À faire', 'bg-blue-400': status=='En cours', 'bg-amber-400': status=='En attente', 'bg-green-400': status=='Terminé'
@@ -316,9 +316,9 @@
                                 <span class="bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full shadow-sm border border-gray-100 dark:border-gray-600 font-mono" x-text="getTasksByStatus(status).length"></span>
                             </div>
                             
-                            <div class="flex-1 p-3 overflow-y-auto space-y-3 sortable-kanban" :data-status="status" x-init="initSortable($el)">
+                            <div class="flex-1 p-4 overflow-y-auto space-y-4 sortable-kanban" :data-status="status" x-init="initSortable($el)">
                                 <template x-for="task in getTasksByStatus(status)" :key="task.id">
-                                    <div class="bg-white dark:bg-dark-surface p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 cursor-grab hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition group relative" :data-id="task.id">
+                                    <div class="bg-white dark:bg-dark-surface p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 cursor-grab hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition group relative" :data-id="task.id">
                                         <div class="flex flex-wrap gap-1.5 mb-2">
                                             <span x-show="task.urgent" class="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-red-100 dark:border-transparent">Urgent</span>
                                             <span x-show="task.projectId" class="bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-300 text-[10px] px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-600 truncate max-w-[120px]" x-text="getProjectName(task.projectId)"></span>
@@ -391,9 +391,9 @@
                 </template>
             </div>
             
-            <div x-show="currentView === 'contacts'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div x-show="currentView === 'contacts'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                  <template x-for="c in filteredContacts" :key="c.id">
-                     <div class="bg-white dark:bg-dark-surface p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border flex items-center gap-4 group hover:border-primary-200 transition">
+                     <div class="bg-white dark:bg-dark-surface p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border flex items-center gap-4 group hover:border-primary-200 transition">
                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center text-lg font-bold text-gray-600 dark:text-gray-300 shadow-inner">
                             <span x-text="getContactInitials(c.id)"></span>
                         </div>
@@ -415,9 +415,9 @@
                  </button>
             </div>
             
-             <div x-show="currentView === 'projects'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div x-show="currentView === 'projects'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <template x-for="p in filteredProjects" :key="p.id">
-                     <div class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-6 flex flex-col relative group hover:shadow-lg transition-all duration-300">
+                     <div class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-8 flex flex-col relative group hover:shadow-lg transition-all duration-300">
                         <div class="flex justify-between items-start mb-4">
                             <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-gray-200 dark:shadow-none" :style="'background-color:' + p.color">
                                 <span x-text="p.name.substring(0,2).toUpperCase()"></span>
@@ -460,9 +460,9 @@
          x-transition.opacity 
          class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4" x-cloak>
         
-        <div x-show="modals.project" @click.away="modals.project = false" x-transition:enter="scale-enter-active" x-transition:enter-start="scale-enter-start" class="bg-white dark:bg-dark-surface w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 font-bold text-lg dark:text-white">Projet</div>
-            <div class="p-6 space-y-4 overflow-y-auto">
+        <div x-show="modals.project" @click.away="modals.project = false" x-transition:enter="scale-enter-active" x-transition:enter-start="scale-enter-start" class="bg-white dark:bg-dark-surface w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-8 py-5 border-b border-gray-100 dark:border-gray-700 font-bold text-xl dark:text-white">Projet</div>
+            <div class="p-8 space-y-5 overflow-y-auto">
                 <input type="text" x-model="tempProject.name" placeholder="Nom du projet" class="w-full text-lg font-bold border-b-2 border-gray-200 dark:border-gray-700 pb-2 focus:border-primary-500 bg-transparent dark:text-white outline-none transition-colors">
                 <textarea x-model="tempProject.description" placeholder="Description courte..." rows="3" class="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary-500/50 dark:text-gray-200 resize-none"></textarea>
                 <div class="grid grid-cols-2 gap-4">
@@ -496,8 +496,8 @@
             </div>
         </div>
 
-        <div x-show="modals.task" @click.away="modals.task = false" x-transition:enter="scale-enter-active" x-transition:enter-start="scale-enter-start" class="bg-white dark:bg-dark-surface w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+        <div x-show="modals.task" @click.away="modals.task = false" x-transition:enter="scale-enter-active" x-transition:enter-start="scale-enter-start" class="bg-white dark:bg-dark-surface w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-8 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-bold uppercase text-gray-400 tracking-wider">Tâche</span>
                     <button x-show="tempTask.id" @click="deleteTask(tempTask.id)" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1 rounded transition"><i class="fa-solid fa-trash-can"></i></button>
@@ -507,8 +507,8 @@
                     <button @click="tempTask.important = !tempTask.important" class="px-3 py-1 rounded-full text-xs font-bold border transition" :class="tempTask.important ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400' : 'text-gray-400 border-gray-200 dark:border-gray-700'">IMPORTANT</button>
                 </div>
             </div>
-            <div class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="md:col-span-2 space-y-5">
+            <div class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="md:col-span-2 space-y-6">
                     <input type="text" x-model="tempTask.title" placeholder="Titre de la tâche..." class="w-full text-xl font-bold bg-transparent border-none p-0 focus:ring-0 dark:text-white placeholder-gray-300">
                     <textarea x-model="tempTask.description" placeholder="Ajouter une description..." rows="4" class="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-4 text-sm focus:ring-2 focus:ring-primary-500/50 dark:text-gray-200 resize-none"></textarea>
                     
@@ -608,9 +608,9 @@
             </div>
         </div>
         
-        <div x-show="modals.contact" @click.away="modals.contact = false" class="bg-white dark:bg-dark-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-             <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 font-bold dark:text-white">Fiche Contact</div>
-             <div class="p-6 space-y-3">
+        <div x-show="modals.contact" @click.away="modals.contact = false" class="bg-white dark:bg-dark-surface w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden">
+             <div class="px-8 py-5 border-b border-gray-100 dark:border-gray-700 font-bold text-xl dark:text-white">Fiche Contact</div>
+             <div class="p-8 space-y-5">
                  <input type="text" x-model="tempContact.name" placeholder="Nom Complet" class="input-std">
                  <input type="email" x-model="tempContact.email" placeholder="Email" class="input-std">
                  <input type="text" x-model="tempContact.org" placeholder="Organisation" class="input-std">
@@ -623,9 +623,9 @@
             </div>
         </div>
 
-        <div x-show="modals.meeting" @click.away="modals.meeting = false" class="bg-white dark:bg-dark-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-             <div class="bg-purple-600 px-6 py-4 text-white font-bold flex items-center gap-2"><i class="fa-solid fa-calendar-days"></i> Planifier Réunion</div>
-             <div class="p-6 space-y-4">
+        <div x-show="modals.meeting" @click.away="modals.meeting = false" class="bg-white dark:bg-dark-surface w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden">
+             <div class="bg-purple-600 px-8 py-5 text-white font-bold text-xl flex items-center gap-2"><i class="fa-solid fa-calendar-days"></i> Planifier Réunion</div>
+             <div class="p-8 space-y-5">
                 <p class="text-sm text-gray-600 dark:text-gray-300">Pour: <strong x-text="tempMeeting.title"></strong></p>
                 <div class="grid grid-cols-2 gap-3">
                     <input type="date" x-model="tempMeeting.date" class="input-std">
@@ -1235,7 +1235,7 @@
         .label-xs { @apply text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 block; }
         .btn-primary { @apply px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-sm transition; }
         .btn-secondary { @apply px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition; }
-        .modal-footer { @apply px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2 mt-auto; }
+        .modal-footer { @apply px-8 py-5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 mt-auto; }
     </style>
 </body>
 </html>
