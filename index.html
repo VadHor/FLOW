@@ -583,8 +583,34 @@
                     </div>
                     
                     <div>
-                         <label class="label-xs mb-2 block">Checklist (Coming soon)</label>
-                         <div class="h-2 bg-gray-100 dark:bg-gray-800 rounded-full w-full"></div>
+                         <label class="label-xs mb-2 block">Checklist</label>
+                         <div class="space-y-2">
+                             <template x-for="(item, index) in tempTask.checklist" :key="index">
+                                 <div class="flex items-center gap-2 p-2 bg-white dark:bg-dark-surface rounded-lg border border-gray-200 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-600 transition">
+                                     <input type="checkbox"
+                                            x-model="item.completed"
+                                            class="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 cursor-pointer">
+                                     <input type="text"
+                                            x-model="item.text"
+                                            placeholder="Élément de checklist..."
+                                            class="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 dark:text-white"
+                                            :class="item.completed ? 'line-through text-gray-400' : ''">
+                                     <button @click="tempTask.checklist.splice(index, 1)"
+                                             type="button"
+                                             class="text-red-500 hover:text-red-700 transition px-2">
+                                         <i class="fa-solid fa-trash text-xs"></i>
+                                     </button>
+                                 </div>
+                             </template>
+                             <button @click="tempTask.checklist.push({ text: '', completed: false })"
+                                     type="button"
+                                     class="w-full py-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition text-sm font-medium flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                                 <i class="fa-solid fa-plus"></i> Ajouter un élément
+                             </button>
+                             <div x-show="tempTask.checklist && tempTask.checklist.length > 0" class="text-xs text-gray-500 dark:text-gray-400 pt-2">
+                                 <span x-text="tempTask.checklist.filter(i => i.completed).length"></span> / <span x-text="tempTask.checklist.length"></span> éléments complétés
+                             </div>
+                         </div>
                     </div>
                 </div>
                 
@@ -645,7 +671,7 @@
                     
                 </div>
             </div>
-            <div class="modal-footer justify-between">
+            <div class="modal-footer justify-between sticky bottom-0 shadow-lg">
                 <div class="flex gap-2">
                     <button x-show="tempTask.id && tempTask.participants && tempTask.participants.length > 0"
                             @click="generateTaskAssignmentICS(tempTask)"
@@ -662,9 +688,13 @@
                         <i class="fa-solid fa-paper-plane"></i> Envoyer aux participants
                     </button>
                 </div>
-                <div class="flex gap-2">
-                    <button @click="modals.task = false" class="btn-secondary">Fermer</button>
-                    <button @click="saveTask()" class="btn-primary">Enregistrer</button>
+                <div class="flex gap-3">
+                    <button @click="modals.task = false" class="px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition font-semibold text-base border-2 border-gray-300 dark:border-gray-600 flex items-center gap-2">
+                        <i class="fa-solid fa-times"></i> Fermer
+                    </button>
+                    <button @click="saveTask()" class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-lg transition font-bold text-base flex items-center gap-2 animate-pulse hover:animate-none">
+                        <i class="fa-solid fa-check"></i> Enregistrer
+                    </button>
                 </div>
             </div>
         </div>
@@ -872,23 +902,24 @@
                 // Task Management
                 openTaskModal(defaults = {}) {
                     // Initialiser la tâche par défaut ou cloner l'existante
-                    const baseTask = { 
-                        id: null, title: '', status: 'À faire', urgent: false, important: false, 
-                        projectId: this.filterProject||'', participants: [], notes: '', customFields: {}, 
-                        timeEst: '', timeSpent: '', dueDate: '', 
-                        ...defaults 
+                    const baseTask = {
+                        id: null, title: '', status: 'À faire', urgent: false, important: false,
+                        projectId: this.filterProject||'', participants: [], notes: '', customFields: {},
+                        timeEst: '', timeSpent: '', dueDate: '', checklist: [],
+                        ...defaults
                     };
-                    
+
                     if(defaults.id) {
                         this.tempTask = JSON.parse(JSON.stringify(defaults)); // Clone
                     } else {
                         this.tempTask = baseTask;
                     }
-                    
+
                     // CONVERSION POUR L'UI: Object {key:value} -> Array [{key, value}]
                     this.tempTask._customFieldsArray = Object.entries(this.tempTask.customFields || {}).map(([key, value]) => ({ key, value }));
-                    
+
                     if(!this.tempTask.participants) this.tempTask.participants = [];
+                    if(!this.tempTask.checklist) this.tempTask.checklist = [];
                     this.modals.task = true;
                 },
                 toggleParticipant(cid) {
