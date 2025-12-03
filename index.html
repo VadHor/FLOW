@@ -47,8 +47,36 @@
         .scale-enter-end { opacity: 1; transform: scale(1); }
 
         /* Ghost drag */
-        .ghost { opacity: 0.4; background: #e2e8f0; border: 2px dashed #94a3b8; transform: scale(0.98); }
-        .dark .ghost { background: #334155; border-color: #64748b; }
+        .ghost {
+            opacity: 0.5;
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            border: 2px dashed #3b82f6;
+            transform: scale(0.98) rotate(2deg);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            cursor: grabbing !important;
+        }
+        .dark .ghost {
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+            border-color: #3b82f6;
+        }
+
+        /* Drag handle cursor */
+        .sortable-handle { cursor: grab; }
+        .sortable-handle:active { cursor: grabbing; }
+
+        /* Drag feedback */
+        .sortable-drag {
+            opacity: 0.8;
+            transform: scale(1.05);
+            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.4);
+            z-index: 9999;
+        }
+
+        /* Drop zone highlight */
+        .sortable-chosen {
+            background: rgba(59, 130, 246, 0.05);
+            border-color: #3b82f6;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800 dark:bg-dark-bg dark:text-dark-text transition-colors duration-300 h-screen flex overflow-hidden" 
@@ -319,6 +347,9 @@
                             <div class="flex-1 p-4 overflow-y-auto space-y-4 sortable-kanban" :data-status="status" x-init="initSortable($el)">
                                 <template x-for="task in getTasksByStatus(status)" :key="task.id">
                                     <div class="bg-white dark:bg-dark-surface p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 cursor-grab hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition group relative" :data-id="task.id">
+                                        <div class="absolute -left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 transition-opacity text-gray-400 text-sm pointer-events-none">
+                                            <i class="fa-solid fa-grip-vertical"></i>
+                                        </div>
                                         <div class="flex flex-wrap gap-1.5 mb-2">
                                             <span x-show="task.urgent" class="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-red-100 dark:border-transparent">Urgent</span>
                                             <span x-show="task.projectId" class="bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-300 text-[10px] px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-600 truncate max-w-[120px]" x-text="getProjectName(task.projectId)"></span>
@@ -391,9 +422,12 @@
                 </template>
             </div>
             
-            <div x-show="currentView === 'contacts'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div x-show="currentView === 'contacts'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sortable-contacts" x-init="initContactsSortable($el)">
                  <template x-for="c in filteredContacts" :key="c.id">
-                     <div class="bg-white dark:bg-dark-surface p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border flex items-center gap-4 group hover:border-primary-200 transition">
+                     <div :data-id="c.id" class="bg-white dark:bg-dark-surface p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border flex items-center gap-4 group hover:border-primary-200 transition cursor-grab relative">
+                        <div class="absolute top-2 left-2 opacity-0 group-hover:opacity-30 transition-opacity text-gray-400 text-xs pointer-events-none">
+                            <i class="fa-solid fa-grip-vertical"></i>
+                        </div>
                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center text-lg font-bold text-gray-600 dark:text-gray-300 shadow-inner">
                             <span x-text="getContactInitials(c.id)"></span>
                         </div>
@@ -415,9 +449,12 @@
                  </button>
             </div>
             
-             <div x-show="currentView === 'projects'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+             <div x-show="currentView === 'projects'" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sortable-projects" x-init="initProjectsSortable($el)">
                 <template x-for="p in filteredProjects" :key="p.id">
-                     <div class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-8 flex flex-col relative group hover:shadow-lg transition-all duration-300">
+                     <div :data-id="p.id" class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-8 flex flex-col relative group hover:shadow-lg transition-all duration-300 cursor-grab">
+                        <div class="absolute top-2 left-2 opacity-0 group-hover:opacity-30 transition-opacity text-gray-400 text-xs pointer-events-none">
+                            <i class="fa-solid fa-grip-vertical"></i>
+                        </div>
                         <div class="flex justify-between items-start mb-4">
                             <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-gray-200 dark:shadow-none" :style="'background-color:' + p.color">
                                 <span x-text="p.name.substring(0,2).toUpperCase()"></span>
@@ -728,11 +765,21 @@
                     this.projects = d.projects || [];
                     this.tasks = d.tasks || [];
                     this.contacts = d.contacts || [];
-                    
+
                     // Migration / Normalisation des anciennes tâches pour les nouveaux champs
-                    this.tasks.forEach(t => {
+                    this.tasks.forEach((t, idx) => {
                         if (t.customFields === undefined) t.customFields = {};
                         if (t.notes === undefined) t.notes = '';
+                        if (t.order === undefined) t.order = idx;
+                    });
+
+                    // Initialiser l'ordre pour les projets et contacts si nécessaire
+                    this.projects.forEach((p, idx) => {
+                        if (p.order === undefined) p.order = idx;
+                    });
+
+                    this.contacts.forEach((c, idx) => {
+                        if (c.order === undefined) c.order = idx;
                     });
                 },
                 seed() {
@@ -760,14 +807,30 @@
 
                 // Filters & Computed
                 get filteredProjects() {
-                    if(!this.searchQuery) return this.projects;
-                    const q = this.searchQuery.toLowerCase();
-                    return this.projects.filter(p => p.name.toLowerCase().includes(q));
+                    let projects = this.projects;
+                    if(this.searchQuery) {
+                        const q = this.searchQuery.toLowerCase();
+                        projects = projects.filter(p => p.name.toLowerCase().includes(q));
+                    }
+                    // Tri par ordre (si défini)
+                    return projects.sort((a, b) => {
+                        const orderA = a.order !== undefined ? a.order : 999999;
+                        const orderB = b.order !== undefined ? b.order : 999999;
+                        return orderA - orderB;
+                    });
                 },
                 get filteredContacts() {
-                    if(!this.searchQuery) return this.contacts;
-                    const q = this.searchQuery.toLowerCase();
-                    return this.contacts.filter(c => c.name.toLowerCase().includes(q) || c.org.toLowerCase().includes(q));
+                    let contacts = this.contacts;
+                    if(this.searchQuery) {
+                        const q = this.searchQuery.toLowerCase();
+                        contacts = contacts.filter(c => c.name.toLowerCase().includes(q) || (c.org && c.org.toLowerCase().includes(q)));
+                    }
+                    // Tri par ordre (si défini)
+                    return contacts.sort((a, b) => {
+                        const orderA = a.order !== undefined ? a.order : 999999;
+                        const orderB = b.order !== undefined ? b.order : 999999;
+                        return orderA - orderB;
+                    });
                 },
 
                 // Logic specific
@@ -844,7 +907,13 @@
                     }
                 },
                 getTasksByStatus(s) {
-                    return this.tasks.filter(t => t.status === s && (!this.filterProject || t.projectId === this.filterProject) && t.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                    const filtered = this.tasks.filter(t => t.status === s && (!this.filterProject || t.projectId === this.filterProject) && t.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                    // Tri par ordre (si défini), sinon par défaut
+                    return filtered.sort((a, b) => {
+                        const orderA = a.order !== undefined ? a.order : 999999;
+                        const orderB = b.order !== undefined ? b.order : 999999;
+                        return orderA - orderB;
+                    });
                 },
                 getMatrixTasks(u, i) {
                     return this.tasks.filter(t => t.status !== 'Terminé' && t.urgent === u && t.important === i && (!this.filterProject || t.projectId === this.filterProject));
@@ -941,25 +1010,185 @@
                     else this.openTaskModal();
                 },
 
-                // Sortable
+                // Sortable - Kanban avec réorganisation dans les colonnes
                 initSortable(el) {
-                    new Sortable(el, { group: 'kanban', animation: 150, ghostClass: 'ghost', delay: 100, delayOnTouchOnly: true,
+                    new Sortable(el, {
+                        group: 'kanban',
+                        animation: 200,
+                        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                        ghostClass: 'ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        delay: 100,
+                        delayOnTouchOnly: true,
+                        forceFallback: false,
+                        fallbackTolerance: 3,
+                        handle: null, // Tout l'élément est draggable
+                        onStart: (evt) => {
+                            evt.item.style.cursor = 'grabbing';
+                        },
                         onEnd: (evt) => {
+                            evt.item.style.cursor = 'grab';
                             const id = evt.item.dataset.id;
                             const status = evt.to.dataset.status;
-                            const t = this.tasks.find(x => x.id === id);
-                            if(t && t.status !== status) { t.status = status; this.save(); }
+                            const newIndex = evt.newIndex;
+
+                            const task = this.tasks.find(x => x.id === id);
+                            if (!task) return;
+
+                            // Mettre à jour le statut si changement de colonne
+                            if (task.status !== status) {
+                                task.status = status;
+                                this.showToast('Tâche déplacée', `"${task.title}" → ${status}`, 'info');
+                            }
+
+                            // Réorganiser l'ordre des tâches selon la nouvelle position
+                            const tasksInColumn = this.tasks.filter(t => t.status === status);
+                            const taskIndex = tasksInColumn.findIndex(t => t.id === id);
+
+                            if (taskIndex !== -1) {
+                                // Retirer la tâche de sa position actuelle
+                                tasksInColumn.splice(taskIndex, 1);
+                                // L'insérer à la nouvelle position
+                                tasksInColumn.splice(newIndex, 0, task);
+
+                                // Mettre à jour les ordres
+                                tasksInColumn.forEach((t, idx) => {
+                                    t.order = idx;
+                                });
+                            }
+
+                            this.save();
                         }
                     });
                 },
                 initMatrixSortable(el) {
-                    new Sortable(el, { group: 'matrix', animation: 150, ghostClass: 'ghost', delay: 100,
+                    new Sortable(el, {
+                        group: 'matrix',
+                        animation: 200,
+                        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                        ghostClass: 'ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        delay: 100,
+                        delayOnTouchOnly: true,
+                        onStart: (evt) => {
+                            evt.item.style.cursor = 'grabbing';
+                        },
                         onEnd: (evt) => {
+                            evt.item.style.cursor = 'grab';
                             const id = evt.item.dataset.id;
                             const u = evt.to.dataset.u === 'true';
                             const i = evt.to.dataset.i === 'true';
                             const t = this.tasks.find(x => x.id === id);
-                            if(t) { t.urgent = u; t.important = i; this.save(); this.tasks = [...this.tasks]; }
+
+                            if(t) {
+                                const oldUrgent = t.urgent;
+                                const oldImportant = t.important;
+                                t.urgent = u;
+                                t.important = i;
+
+                                // Notification si changement
+                                if (oldUrgent !== u || oldImportant !== i) {
+                                    const quadrantNames = {
+                                        'true_true': 'Faire (Urgent & Important)',
+                                        'false_true': 'Planifier (Important)',
+                                        'true_false': 'Déléguer (Urgent)',
+                                        'false_false': 'Éliminer'
+                                    };
+                                    const newQuadrant = quadrantNames[`${u}_${i}`];
+                                    this.showToast('Tâche déplacée', `"${t.title}" → ${newQuadrant}`, 'info');
+                                }
+
+                                this.save();
+                                this.tasks = [...this.tasks];
+                            }
+                        }
+                    });
+                },
+
+                // Sortable - Projets
+                initProjectsSortable(el) {
+                    new Sortable(el, {
+                        animation: 200,
+                        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                        ghostClass: 'ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        delay: 100,
+                        delayOnTouchOnly: true,
+                        filter: '.btn, button, a, input, textarea, select',
+                        preventOnFilter: true,
+                        onStart: (evt) => {
+                            evt.item.style.cursor = 'grabbing';
+                        },
+                        onEnd: (evt) => {
+                            evt.item.style.cursor = 'grab';
+                            const id = evt.item.dataset.id;
+                            const newIndex = evt.newIndex;
+
+                            const project = this.projects.find(p => p.id === id);
+                            if (!project) return;
+
+                            // Réorganiser l'ordre des projets
+                            const projectIndex = this.projects.findIndex(p => p.id === id);
+                            if (projectIndex !== -1) {
+                                // Retirer le projet de sa position actuelle
+                                this.projects.splice(projectIndex, 1);
+                                // L'insérer à la nouvelle position
+                                this.projects.splice(newIndex, 0, project);
+
+                                // Mettre à jour les ordres
+                                this.projects.forEach((p, idx) => {
+                                    p.order = idx;
+                                });
+
+                                this.save();
+                                this.showToast('Projet déplacé', `"${project.name}" réorganisé`, 'success');
+                            }
+                        }
+                    });
+                },
+
+                // Sortable - Contacts
+                initContactsSortable(el) {
+                    new Sortable(el, {
+                        animation: 200,
+                        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                        ghostClass: 'ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        delay: 100,
+                        delayOnTouchOnly: true,
+                        filter: '.btn, button, a, input, textarea, select',
+                        preventOnFilter: true,
+                        onStart: (evt) => {
+                            evt.item.style.cursor = 'grabbing';
+                        },
+                        onEnd: (evt) => {
+                            evt.item.style.cursor = 'grab';
+                            const id = evt.item.dataset.id;
+                            const newIndex = evt.newIndex;
+
+                            const contact = this.contacts.find(c => c.id === id);
+                            if (!contact) return;
+
+                            // Réorganiser l'ordre des contacts
+                            const contactIndex = this.contacts.findIndex(c => c.id === id);
+                            if (contactIndex !== -1) {
+                                // Retirer le contact de sa position actuelle
+                                this.contacts.splice(contactIndex, 1);
+                                // L'insérer à la nouvelle position
+                                this.contacts.splice(newIndex, 0, contact);
+
+                                // Mettre à jour les ordres
+                                this.contacts.forEach((c, idx) => {
+                                    c.order = idx;
+                                });
+
+                                this.save();
+                                this.showToast('Contact déplacé', `"${contact.name}" réorganisé`, 'success');
+                            }
                         }
                     });
                 },
