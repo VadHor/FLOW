@@ -903,7 +903,7 @@
                 openTaskModal(defaults = {}) {
                     // Initialiser la tâche par défaut ou cloner l'existante
                     const baseTask = {
-                        id: null, title: '', status: 'À faire', urgent: false, important: false,
+                        id: null, title: '', description: '', status: 'À faire', urgent: false, important: false,
                         projectId: this.filterProject||'', participants: [], notes: '', customFields: {},
                         timeEst: '', timeSpent: '', dueDate: '', checklist: [],
                         ...defaults
