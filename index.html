@@ -420,6 +420,23 @@
                     </template>
                 </div>
 
+                <!-- Filtrage par tags -->
+                <div class="mb-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center mr-2">Tags:</span>
+                    <template x-for="tag in getAllUsedTags()" :key="tag">
+                        <button @click="toggleFilterTag(tag)"
+                            class="px-3 py-1 rounded-full text-xs font-medium transition shadow-sm border flex items-center gap-1 whitespace-nowrap"
+                            :class="filterTags.includes(tag) ? 'text-white border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-dark-surface dark:text-gray-300 dark:border-gray-600'"
+                            :style="filterTags.includes(tag) ? 'background-color:' + getTagColor(tag) : ''">
+                            <span x-text="tag"></span>
+                        </button>
+                    </template>
+                    <button x-show="filterTags.length > 0" @click="filterTags = []"
+                            class="px-3 py-1 rounded-full text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                        <i class="fa-solid fa-xmark mr-1"></i> Réinitialiser
+                    </button>
+                </div>
+
                 <div class="flex-1 flex gap-8 overflow-x-auto pb-4 h-full items-start">
                     <template x-for="status in kanbanColumns" :key="status">
                         <div class="min-w-[380px] w-[380px] flex flex-col bg-gray-100 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-dark-border max-h-full">
@@ -462,7 +479,16 @@
                                             <i class="fa-solid fa-stopwatch"></i>
                                             <span x-text="getTimerDisplay(task.id)"></span>
                                         </div>
-                                        
+
+                                        <!-- Tags -->
+                                        <div x-show="task.tags && task.tags.length > 0" class="flex flex-wrap gap-1 mb-2">
+                                            <template x-for="tag in task.tags" :key="tag">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-medium text-white"
+                                                      :style="'background-color:' + getTagColor(tag)"
+                                                      x-text="tag"></span>
+                                            </template>
+                                        </div>
+
                                         <div x-show="Object.keys(task.customFields || {}).length > 0" class="flex gap-2 text-xs text-gray-400 dark:text-gray-500 mb-2">
                                             <template x-for="(value, key, index) in task.customFields" :key="key">
                                                 <span x-show="index < 2" class="truncate max-w-[100px]"><strong x-text="key+':'"></strong> <span x-text="value"></span></span>
@@ -735,6 +761,40 @@
                         </div>
                     </div>
                     <div>
+                        <label class="label-xs">Tags</label>
+                        <div class="space-y-2 mt-1">
+                            <!-- Tags existants sur la tâche -->
+                            <div class="flex flex-wrap gap-1" x-show="tempTask.tags && tempTask.tags.length > 0">
+                                <template x-for="tag in tempTask.tags" :key="tag">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1"
+                                          :style="'background-color:' + getTagColor(tag)">
+                                        <span x-text="tag"></span>
+                                        <button @click="removeTagFromTask(tag)" class="hover:bg-white/20 rounded-full w-4 h-4 flex items-center justify-center">
+                                            <i class="fa-solid fa-xmark text-[10px]"></i>
+                                        </button>
+                                    </span>
+                                </template>
+                            </div>
+                            <!-- Tags suggérés -->
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="tag in suggestedTags">
+                                    <button @click="addTagToTask(tag)"
+                                            x-show="!tempTask.tags || !tempTask.tags.includes(tag)"
+                                            class="px-2 py-1 rounded-full text-xs font-medium border transition hover:opacity-80"
+                                            :style="'background-color:' + getTagColor(tag) + '20; border-color:' + getTagColor(tag) + '; color:' + getTagColor(tag)"
+                                            x-text="tag"></button>
+                                </template>
+                            </div>
+                            <!-- Ajouter un tag personnalisé -->
+                            <div class="flex gap-1">
+                                <input type="text" x-model="newTag" @keyup.enter="newTag.trim() && addTagToTask(newTag)" placeholder="Nouveau tag..." class="input-std flex-1 p-1.5 text-xs bg-white dark:bg-dark-surface">
+                                <button @click="newTag.trim() && addTagToTask(newTag)" type="button" class="px-2 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded text-xs">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
                          <label class="label-xs">Temps (H)</label>
                          <div class="grid grid-cols-2 gap-2">
                              <input type="number" x-model="tempTask.timeEst" placeholder="Est." class="input-std bg-white dark:bg-dark-surface text-center">
@@ -860,6 +920,11 @@
                 activeTimer: null,
                 timerInterval: null,
                 timers: {}, // { taskId: { startTime, elapsed } }
+
+                // Tags
+                filterTags: [],
+                suggestedTags: ['Bug', 'Feature', 'Design', 'Backend', 'Frontend', 'Testing', 'Documentation', 'Urgent', 'Review'],
+                newTag: '',
                 
                 // Config
                 kanbanColumns: ['À faire', 'En cours', 'En attente', 'Terminé'],
@@ -927,6 +992,7 @@
                         if (t.notes === undefined) t.notes = '';
                         if (t.order === undefined) t.order = idx;
                         if (t.recurrence === undefined) t.recurrence = 'Aucune';
+                        if (t.tags === undefined) t.tags = [];
                     });
 
                     // Initialiser l'ordre pour les projets et contacts si nécessaire
@@ -1006,7 +1072,7 @@
                     const baseTask = {
                         id: null, title: '', description: '', status: 'À faire', urgent: false, important: false,
                         projectId: this.filterProject||'', participants: [], notes: '', customFields: {},
-                        timeEst: '', timeSpent: '', dueDate: '', checklist: [], recurrence: 'Aucune',
+                        timeEst: '', timeSpent: '', dueDate: '', checklist: [], recurrence: 'Aucune', tags: [],
                         ...defaults
                     };
 
@@ -1106,7 +1172,13 @@
                     }
                 },
                 getTasksByStatus(s) {
-                    const filtered = this.tasks.filter(t => t.status === s && (!this.filterProject || t.projectId === this.filterProject) && t.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                    const filtered = this.tasks.filter(t => {
+                        const statusMatch = t.status === s;
+                        const projectMatch = !this.filterProject || t.projectId === this.filterProject;
+                        const searchMatch = t.title.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        const tagMatch = this.filterTags.length === 0 || (t.tags && this.filterTags.some(tag => t.tags.includes(tag)));
+                        return statusMatch && projectMatch && searchMatch && tagMatch;
+                    });
                     // Tri par ordre (si défini), sinon par défaut
                     return filtered.sort((a, b) => {
                         const orderA = a.order !== undefined ? a.order : 999999;
@@ -1162,6 +1234,50 @@
                         this.save();
                         this.showToast('Supprimé', 'Projet archivé', 'info');
                     }
+                },
+
+                // Tag Functions
+                addTagToTask(tag) {
+                    if(!this.tempTask.tags) this.tempTask.tags = [];
+                    if(!this.tempTask.tags.includes(tag)) {
+                        this.tempTask.tags.push(tag);
+                    }
+                    this.newTag = '';
+                },
+                removeTagFromTask(tag) {
+                    if(this.tempTask.tags) {
+                        this.tempTask.tags = this.tempTask.tags.filter(t => t !== tag);
+                    }
+                },
+                toggleFilterTag(tag) {
+                    if(this.filterTags.includes(tag)) {
+                        this.filterTags = this.filterTags.filter(t => t !== tag);
+                    } else {
+                        this.filterTags.push(tag);
+                    }
+                },
+                getAllUsedTags() {
+                    const tagsSet = new Set();
+                    this.tasks.forEach(t => {
+                        if(t.tags) {
+                            t.tags.forEach(tag => tagsSet.add(tag));
+                        }
+                    });
+                    return Array.from(tagsSet);
+                },
+                getTagColor(tag) {
+                    const colors = {
+                        'Bug': '#ef4444',
+                        'Feature': '#10b981',
+                        'Design': '#8b5cf6',
+                        'Backend': '#f59e0b',
+                        'Frontend': '#3b82f6',
+                        'Testing': '#ec4899',
+                        'Documentation': '#6b7280',
+                        'Urgent': '#dc2626',
+                        'Review': '#14b8a6'
+                    };
+                    return colors[tag] || '#6b7280';
                 },
 
                 // Timer Functions
