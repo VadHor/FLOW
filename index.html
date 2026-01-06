@@ -337,6 +337,71 @@
                 </div>
             </div>
 
+            <div x-show="currentView === 'calendar'" x-transition:enter="fade-enter-active" x-cloak class="space-y-6">
+                <div class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-8">
+                    <!-- En-tête du calendrier -->
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-2xl text-gray-800 dark:text-white" x-text="getMonthName() + ' ' + currentYear"></h3>
+                        <div class="flex gap-2">
+                            <button @click="prevMonth()" class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition flex items-center justify-center">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <button @click="currentMonth = new Date().getMonth(); currentYear = new Date().getFullYear()" class="px-4 h-10 rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition text-sm font-medium">
+                                Aujourd'hui
+                            </button>
+                            <button @click="nextMonth()" class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition flex items-center justify-center">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Jours de la semaine -->
+                    <div class="grid grid-cols-7 gap-2 mb-2">
+                        <template x-for="day in ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']">
+                            <div class="text-center font-bold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider py-2" x-text="day"></div>
+                        </template>
+                    </div>
+
+                    <!-- Grille du calendrier -->
+                    <div class="grid grid-cols-7 gap-2">
+                        <template x-for="dayObj in getCalendarDays()" :key="dayObj.date.toISOString()">
+                            <div class="min-h-[120px] rounded-lg border transition-all"
+                                 :class="dayObj.isCurrentMonth
+                                    ? (isToday(dayObj.date)
+                                        ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700'
+                                        : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700 cursor-pointer')
+                                    : 'bg-gray-100/50 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'"
+                                 @click="dayObj.isCurrentMonth && getTasksForDate(dayObj.date).length === 0 ? createTaskForDate(dayObj.date) : null">
+
+                                <div class="p-2">
+                                    <div class="text-sm font-semibold mb-1"
+                                         :class="dayObj.isCurrentMonth
+                                            ? (isToday(dayObj.date) ? 'text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-200')
+                                            : 'text-gray-400 dark:text-gray-600'"
+                                         x-text="dayObj.day"></div>
+
+                                    <!-- Tâches du jour -->
+                                    <div class="space-y-1">
+                                        <template x-for="task in getTasksForDate(dayObj.date).slice(0, 3)" :key="task.id">
+                                            <div @click.stop="openTaskModal(task)"
+                                                 class="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition truncate text-white"
+                                                 :style="'background-color:' + (projects.find(p => p.id === task.projectId)?.color || '#6b7280')"
+                                                 :title="task.title">
+                                                <span x-show="task.urgent" class="mr-1">🔥</span>
+                                                <span x-text="task.title"></span>
+                                            </div>
+                                        </template>
+                                        <div x-show="getTasksForDate(dayObj.date).length > 3"
+                                             class="text-xs text-gray-500 dark:text-gray-400 px-1.5"
+                                             x-text="'+' + (getTasksForDate(dayObj.date).length - 3)"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
             <div x-show="currentView === 'kanban'" x-transition:enter="fade-enter-active" x-cloak class="h-full flex flex-col">
                 <div class="mb-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     <button @click="filterProject = null" 
@@ -757,6 +822,8 @@
                 searchQuery: '',
                 filterProject: null,
                 filterRoadmapProject: null,
+                currentMonth: new Date().getMonth(),
+                currentYear: new Date().getFullYear(),
 
                 projects: [],
                 tasks: [],
@@ -774,6 +841,7 @@
                 menuItems: [
                     { id: 'dashboard', label: 'Cockpit', icon: 'fa-solid fa-chart-pie' },
                     { id: 'roadmap', label: 'Roadmap', icon: 'fa-solid fa-route' },
+                    { id: 'calendar', label: 'Calendrier', icon: 'fa-solid fa-calendar-days' },
                     { id: 'projects', label: 'Projets', icon: 'fa-solid fa-folder-open' },
                     { id: 'kanban', label: 'Kanban', icon: 'fa-solid fa-table-columns' },
                     { id: 'eisenhower', label: 'Matrice Eisenhower', icon: 'fa-solid fa-border-all' },
@@ -1063,7 +1131,91 @@
                 openModalForView() {
                     if(this.currentView === 'contacts') this.openContactModal();
                     else if(this.currentView === 'projects') this.openProjectModal();
+                    else if(this.currentView === 'calendar') this.openTaskModal();
                     else this.openTaskModal();
+                },
+
+                // Calendar Functions
+                prevMonth() {
+                    if(this.currentMonth === 0) {
+                        this.currentMonth = 11;
+                        this.currentYear--;
+                    } else {
+                        this.currentMonth--;
+                    }
+                },
+                nextMonth() {
+                    if(this.currentMonth === 11) {
+                        this.currentMonth = 0;
+                        this.currentYear++;
+                    } else {
+                        this.currentMonth++;
+                    }
+                },
+                getMonthName() {
+                    const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                                    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                    return months[this.currentMonth];
+                },
+                getCalendarDays() {
+                    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+                    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+                    const daysInMonth = lastDay.getDate();
+                    const startDayOfWeek = (firstDay.getDay() + 6) % 7; // Lundi = 0
+
+                    const days = [];
+
+                    // Jours du mois précédent
+                    const prevMonthLastDay = new Date(this.currentYear, this.currentMonth, 0).getDate();
+                    for(let i = startDayOfWeek - 1; i >= 0; i--) {
+                        days.push({
+                            day: prevMonthLastDay - i,
+                            isCurrentMonth: false,
+                            date: new Date(this.currentYear, this.currentMonth - 1, prevMonthLastDay - i)
+                        });
+                    }
+
+                    // Jours du mois actuel
+                    for(let i = 1; i <= daysInMonth; i++) {
+                        days.push({
+                            day: i,
+                            isCurrentMonth: true,
+                            date: new Date(this.currentYear, this.currentMonth, i)
+                        });
+                    }
+
+                    // Jours du mois suivant
+                    const remainingDays = 42 - days.length; // 6 semaines
+                    for(let i = 1; i <= remainingDays; i++) {
+                        days.push({
+                            day: i,
+                            isCurrentMonth: false,
+                            date: new Date(this.currentYear, this.currentMonth + 1, i)
+                        });
+                    }
+
+                    return days;
+                },
+                getTasksForDate(date) {
+                    return this.tasks.filter(t => {
+                        if(!t.dueDate) return false;
+                        const taskDate = new Date(t.dueDate);
+                        return taskDate.getDate() === date.getDate() &&
+                               taskDate.getMonth() === date.getMonth() &&
+                               taskDate.getFullYear() === date.getFullYear();
+                    });
+                },
+                isToday(date) {
+                    const today = new Date();
+                    return date.getDate() === today.getDate() &&
+                           date.getMonth() === today.getMonth() &&
+                           date.getFullYear() === today.getFullYear();
+                },
+                createTaskForDate(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    this.openTaskModal({ dueDate: `${year}-${month}-${day}` });
                 },
 
                 // Sortable - Kanban avec réorganisation dans les colonnes
