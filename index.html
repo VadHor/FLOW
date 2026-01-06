@@ -132,7 +132,12 @@
                 <span x-text="isDark ? 'Mode Sombre' : 'Mode Clair'"></span>
                 <i :class="isDark ? 'fa-moon text-indigo-400' : 'fa-sun text-amber-500'" class="fa-solid"></i>
             </button>
-            
+
+            <button @click="toggleNotifications()" class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-500 dark:text-dark-textMuted bg-gray-100 dark:bg-gray-800 rounded-md hover:text-gray-800 dark:hover:text-white transition">
+                <span x-text="notificationsEnabled ? 'Notifications ON' : 'Notifications OFF'"></span>
+                <i :class="notificationsEnabled ? 'fa-bell text-green-500' : 'fa-bell-slash text-gray-400'" class="fa-solid"></i>
+            </button>
+
             <div class="grid grid-cols-2 gap-2">
                 <button @click="exportData" class="py-1.5 px-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-xs hover:bg-gray-50 dark:hover:bg-gray-600 transition text-gray-600 dark:text-gray-300">
                     <i class="fa-solid fa-download mr-1"></i> Backup (JSON)
@@ -925,7 +930,12 @@
                 filterTags: [],
                 suggestedTags: ['Bug', 'Feature', 'Design', 'Backend', 'Frontend', 'Testing', 'Documentation', 'Urgent', 'Review'],
                 newTag: '',
-                
+
+                // Notifications
+                notificationsEnabled: false,
+                notificationInterval: null,
+                notifiedTasks: [], // IDs des tâches déjà notifiées pour éviter les doublons
+
                 // Config
                 kanbanColumns: ['À faire', 'En cours', 'En attente', 'Terminé'],
                 eisenhowerQuadrants: [
@@ -958,6 +968,7 @@
                     this.load();
                     if(this.projects.length === 0) this.seed();
                     this.loadTimers();
+                    this.loadNotificationSettings();
                 },
 
                 toggleTheme() {
@@ -1278,6 +1289,115 @@
                         'Review': '#14b8a6'
                     };
                     return colors[tag] || '#6b7280';
+                },
+
+                // Notification Functions
+                async requestNotificationPermission() {
+                    if (!('Notification' in window)) {
+                        this.showToast('Erreur', 'Les notifications ne sont pas supportées', 'error');
+                        return false;
+                    }
+
+                    if (Notification.permission === 'granted') {
+                        return true;
+                    }
+
+                    if (Notification.permission !== 'denied') {
+                        const permission = await Notification.requestPermission();
+                        return permission === 'granted';
+                    }
+
+                    return false;
+                },
+                async toggleNotifications() {
+                    if(!this.notificationsEnabled) {
+                        const granted = await this.requestNotificationPermission();
+                        if(granted) {
+                            this.notificationsEnabled = true;
+                            this.startNotificationChecks();
+                            localStorage.setItem('pf_notifications', 'true');
+                            this.showToast('Succès', 'Notifications activées');
+                        }
+                    } else {
+                        this.notificationsEnabled = false;
+                        this.stopNotificationChecks();
+                        localStorage.setItem('pf_notifications', 'false');
+                        this.showToast('Info', 'Notifications désactivées', 'info');
+                    }
+                },
+                startNotificationChecks() {
+                    this.checkTaskNotifications();
+                    this.notificationInterval = setInterval(() => {
+                        this.checkTaskNotifications();
+                    }, 60000); // Vérifier toutes les minutes
+                },
+                stopNotificationChecks() {
+                    if(this.notificationInterval) {
+                        clearInterval(this.notificationInterval);
+                        this.notificationInterval = null;
+                    }
+                },
+                checkTaskNotifications() {
+                    if(!this.notificationsEnabled) return;
+
+                    const now = new Date();
+
+                    this.tasks.forEach(task => {
+                        if(task.status === 'Terminé') return;
+                        if(!task.dueDate) return;
+
+                        const dueDate = new Date(task.dueDate);
+                        const timeDiff = dueDate - now;
+                        const minutesDiff = Math.floor(timeDiff / (1000 * 60));
+
+                        // Notification 15 minutes avant l'échéance
+                        if(minutesDiff <= 15 && minutesDiff > 0 && !this.notifiedTasks.includes(task.id + '_15min')) {
+                            this.sendNotification(
+                                '⏰ Échéance proche',
+                                `La tâche "${task.title}" est due dans ${minutesDiff} minutes`,
+                                task.id
+                            );
+                            this.notifiedTasks.push(task.id + '_15min');
+                        }
+
+                        // Notification pour les tâches en retard
+                        if(timeDiff < 0 && !this.notifiedTasks.includes(task.id + '_overdue')) {
+                            this.sendNotification(
+                                '🔴 Tâche en retard',
+                                `La tâche "${task.title}" est en retard`,
+                                task.id
+                            );
+                            this.notifiedTasks.push(task.id + '_overdue');
+                        }
+                    });
+                },
+                sendNotification(title, body, taskId) {
+                    if(Notification.permission === 'granted') {
+                        const notification = new Notification(title, {
+                            body: body,
+                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%233b82f6" width="100" height="100"/><text y="75" font-size="80" fill="white" font-family="sans-serif">⚡</text></svg>',
+                            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%233b82f6" width="100" height="100"/></svg>',
+                            tag: taskId,
+                            requireInteraction: false
+                        });
+
+                        notification.onclick = () => {
+                            window.focus();
+                            const task = this.tasks.find(t => t.id === taskId);
+                            if(task) {
+                                this.currentView = 'kanban';
+                                setTimeout(() => this.openTaskModal(task), 100);
+                            }
+                            notification.close();
+                        };
+                    }
+                },
+                loadNotificationSettings() {
+                    const enabled = localStorage.getItem('pf_notifications') === 'true';
+                    if(enabled && Notification.permission === 'granted') {
+                        this.notificationsEnabled = true;
+                        this.startNotificationChecks();
+                    }
                 },
 
                 // Timer Functions
