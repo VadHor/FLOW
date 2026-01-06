@@ -441,6 +441,9 @@
                                         </div>
                                         <div class="flex flex-wrap gap-1.5 mb-2">
                                             <span x-show="task.urgent" class="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-red-100 dark:border-transparent">Urgent</span>
+                                            <span x-show="task.recurrence && task.recurrence !== 'Aucune'" class="bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-100 dark:border-transparent flex items-center gap-1">
+                                                <i class="fa-solid fa-rotate"></i> <span x-text="task.recurrence"></span>
+                                            </span>
                                             <span x-show="task.projectId" class="bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-300 text-[10px] px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-600 truncate max-w-[120px]" x-text="getProjectName(task.projectId)"></span>
                                         </div>
                                         
@@ -698,6 +701,15 @@
                         <input type="date" x-model="tempTask.dueDate" class="input-std bg-white dark:bg-dark-surface">
                     </div>
                     <div>
+                        <label class="label-xs">Récurrence</label>
+                        <select x-model="tempTask.recurrence" class="input-std bg-white dark:bg-dark-surface">
+                            <option value="Aucune">Aucune</option>
+                            <option value="Quotidien">Quotidien</option>
+                            <option value="Hebdo">Hebdomadaire</option>
+                            <option value="Mensuel">Mensuel</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="label-xs">Participants</label>
                         <div class="flex flex-wrap gap-1 mt-1">
                              <template x-for="c in contacts">
@@ -894,6 +906,7 @@
                         if (t.customFields === undefined) t.customFields = {};
                         if (t.notes === undefined) t.notes = '';
                         if (t.order === undefined) t.order = idx;
+                        if (t.recurrence === undefined) t.recurrence = 'Aucune';
                     });
 
                     // Initialiser l'ordre pour les projets et contacts si nécessaire
@@ -973,7 +986,7 @@
                     const baseTask = {
                         id: null, title: '', description: '', status: 'À faire', urgent: false, important: false,
                         projectId: this.filterProject||'', participants: [], notes: '', customFields: {},
-                        timeEst: '', timeSpent: '', dueDate: '', checklist: [],
+                        timeEst: '', timeSpent: '', dueDate: '', checklist: [], recurrence: 'Aucune',
                         ...defaults
                     };
 
@@ -997,7 +1010,7 @@
                 },
                 saveTask() {
                     if(!this.tempTask.title) return;
-                    
+
                     // CONVERSION POUR LA SAUVEGARDE: Array [{key, value}] -> Object {key:value}
                     const customFieldsObj = {};
                     this.tempTask._customFieldsArray.forEach(f => {
@@ -1006,11 +1019,16 @@
                         }
                     });
                     this.tempTask.customFields = customFieldsObj;
-                    
+
                     // Cloner l'objet sans le champ temporaire de l'UI
                     const taskToSave = JSON.parse(JSON.stringify(this.tempTask));
-                    delete taskToSave._customFieldsArray; 
-                    
+                    delete taskToSave._customFieldsArray;
+
+                    // Vérifier si on passe une tâche récurrente à "Terminé"
+                    const wasNotCompleted = this.tempTask.id && this.tasks.find(t => t.id === this.tempTask.id)?.status !== 'Terminé';
+                    const isNowCompleted = taskToSave.status === 'Terminé';
+                    const hasRecurrence = taskToSave.recurrence && taskToSave.recurrence !== 'Aucune';
+
                     if(this.tempTask.id) {
                         const idx = this.tasks.findIndex(t => t.id === this.tempTask.id);
                         this.tasks[idx] = taskToSave;
@@ -1018,9 +1036,46 @@
                         taskToSave.id = this.generateId();
                         this.tasks.push(taskToSave);
                     }
+
+                    // Créer la prochaine occurrence si c'est une tâche récurrente qui vient d'être terminée
+                    if(wasNotCompleted && isNowCompleted && hasRecurrence) {
+                        this.createNextRecurrence(taskToSave);
+                    }
+
                     this.save();
                     this.modals.task = false;
                     this.showToast('Succès', 'Tâche enregistrée');
+                },
+                createNextRecurrence(task) {
+                    const newTask = JSON.parse(JSON.stringify(task));
+                    newTask.id = this.generateId();
+                    newTask.status = 'À faire';
+
+                    // Calculer la prochaine date d'échéance
+                    if(task.dueDate) {
+                        const currentDate = new Date(task.dueDate);
+                        let nextDate = new Date(currentDate);
+
+                        switch(task.recurrence) {
+                            case 'Quotidien':
+                                nextDate.setDate(nextDate.getDate() + 1);
+                                break;
+                            case 'Hebdo':
+                                nextDate.setDate(nextDate.getDate() + 7);
+                                break;
+                            case 'Mensuel':
+                                nextDate.setMonth(nextDate.getMonth() + 1);
+                                break;
+                        }
+
+                        const year = nextDate.getFullYear();
+                        const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(nextDate.getDate()).padStart(2, '0');
+                        newTask.dueDate = `${year}-${month}-${day}`;
+                    }
+
+                    this.tasks.push(newTask);
+                    this.showToast('Info', 'Prochaine occurrence créée', 'info');
                 },
                 deleteTask(id) {
                     if(confirm('Supprimer ?')) {
