@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProjectFlow ULTRA</title>
-    
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ProjectFlow">
+    <meta name="description" content="Gestionnaire de projets et tâches avec Kanban, Timeline et plus">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -2071,8 +2079,21 @@
                 }
             }
         }
+
+        // Enregistrement du Service Worker pour PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker enregistré:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Échec enregistrement Service Worker:', error);
+                    });
+            });
+        }
     </script>
-    
+
     <style>
         .input-std { @apply w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500/50 outline-none dark:bg-dark-bg dark:text-white transition; }
         .label-xs { @apply text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 block; }

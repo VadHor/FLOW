@@ -1,0 +1,63 @@
+{
+  "name": "ProjectFlow ULTRA",
+  "short_name": "ProjectFlow",
+  "description": "Gestionnaire de projets et tâches avec Kanban, Timeline et plus",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%233b82f6' width='192' height='192' rx='48'/><path d='M96 48l-32 48h24v48h16V96h24z' fill='white'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%233b82f6' width='512' height='512' rx='128'/><path d='M256 128l-85 128h64v128h42V256h64z' fill='white'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "Nouveau Projet",
+      "short_name": "Projet",
+      "description": "Créer un nouveau projet",
+      "url": "/?view=projects",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%233b82f6' width='96' height='96'/><path d='M48 20v56M20 48h56' stroke='white' stroke-width='8'/></svg>",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Nouvelle Tâche",
+      "short_name": "Tâche",
+      "description": "Créer une nouvelle tâche",
+      "url": "/?view=kanban",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%2310b981' width='96' height='96'/><path d='M24 48l16 16 32-32' stroke='white' stroke-width='8' fill='none'/></svg>",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Calendrier",
+      "short_name": "Calendrier",
+      "description": "Voir le calendrier",
+      "url": "/?view=calendar",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23f59e0b' width='96' height='96'/><rect x='16' y='24' width='64' height='56' rx='4' fill='white'/></svg>",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
