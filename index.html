@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProjectFlow ULTRA</title>
-    
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ProjectFlow">
+    <meta name="description" content="Gestionnaire de projets et tâches avec Kanban, Timeline et plus">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -132,7 +140,12 @@
                 <span x-text="isDark ? 'Mode Sombre' : 'Mode Clair'"></span>
                 <i :class="isDark ? 'fa-moon text-indigo-400' : 'fa-sun text-amber-500'" class="fa-solid"></i>
             </button>
-            
+
+            <button @click="toggleNotifications()" class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-500 dark:text-dark-textMuted bg-gray-100 dark:bg-gray-800 rounded-md hover:text-gray-800 dark:hover:text-white transition">
+                <span x-text="notificationsEnabled ? 'Notifications ON' : 'Notifications OFF'"></span>
+                <i :class="notificationsEnabled ? 'fa-bell text-green-500' : 'fa-bell-slash text-gray-400'" class="fa-solid"></i>
+            </button>
+
             <div class="grid grid-cols-2 gap-2">
                 <button @click="exportData" class="py-1.5 px-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-xs hover:bg-gray-50 dark:hover:bg-gray-600 transition text-gray-600 dark:text-gray-300">
                     <i class="fa-solid fa-download mr-1"></i> Backup (JSON)
@@ -337,6 +350,71 @@
                 </div>
             </div>
 
+            <div x-show="currentView === 'calendar'" x-transition:enter="fade-enter-active" x-cloak class="space-y-6">
+                <div class="bg-white dark:bg-dark-surface rounded-2xl shadow-sm border border-gray-100 dark:border-dark-border p-8">
+                    <!-- En-tête du calendrier -->
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-2xl text-gray-800 dark:text-white" x-text="getMonthName() + ' ' + currentYear"></h3>
+                        <div class="flex gap-2">
+                            <button @click="prevMonth()" class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition flex items-center justify-center">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <button @click="currentMonth = new Date().getMonth(); currentYear = new Date().getFullYear()" class="px-4 h-10 rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition text-sm font-medium">
+                                Aujourd'hui
+                            </button>
+                            <button @click="nextMonth()" class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition flex items-center justify-center">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Jours de la semaine -->
+                    <div class="grid grid-cols-7 gap-2 mb-2">
+                        <template x-for="day in ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']">
+                            <div class="text-center font-bold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider py-2" x-text="day"></div>
+                        </template>
+                    </div>
+
+                    <!-- Grille du calendrier -->
+                    <div class="grid grid-cols-7 gap-2">
+                        <template x-for="dayObj in getCalendarDays()" :key="dayObj.date.toISOString()">
+                            <div class="min-h-[120px] rounded-lg border transition-all"
+                                 :class="dayObj.isCurrentMonth
+                                    ? (isToday(dayObj.date)
+                                        ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700'
+                                        : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700 cursor-pointer')
+                                    : 'bg-gray-100/50 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'"
+                                 @click="dayObj.isCurrentMonth && getTasksForDate(dayObj.date).length === 0 ? createTaskForDate(dayObj.date) : null">
+
+                                <div class="p-2">
+                                    <div class="text-sm font-semibold mb-1"
+                                         :class="dayObj.isCurrentMonth
+                                            ? (isToday(dayObj.date) ? 'text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-200')
+                                            : 'text-gray-400 dark:text-gray-600'"
+                                         x-text="dayObj.day"></div>
+
+                                    <!-- Tâches du jour -->
+                                    <div class="space-y-1">
+                                        <template x-for="task in getTasksForDate(dayObj.date).slice(0, 3)" :key="task.id">
+                                            <div @click.stop="openTaskModal(task)"
+                                                 class="text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition truncate text-white"
+                                                 :style="'background-color:' + (projects.find(p => p.id === task.projectId)?.color || '#6b7280')"
+                                                 :title="task.title">
+                                                <span x-show="task.urgent" class="mr-1">🔥</span>
+                                                <span x-text="task.title"></span>
+                                            </div>
+                                        </template>
+                                        <div x-show="getTasksForDate(dayObj.date).length > 3"
+                                             class="text-xs text-gray-500 dark:text-gray-400 px-1.5"
+                                             x-text="'+' + (getTasksForDate(dayObj.date).length - 3)"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
             <div x-show="currentView === 'kanban'" x-transition:enter="fade-enter-active" x-cloak class="h-full flex flex-col">
                 <div class="mb-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     <button @click="filterProject = null" 
@@ -353,6 +431,23 @@
                             <span x-text="p.name"></span>
                         </button>
                     </template>
+                </div>
+
+                <!-- Filtrage par tags -->
+                <div class="mb-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center mr-2">Tags:</span>
+                    <template x-for="tag in getAllUsedTags()" :key="tag">
+                        <button @click="toggleFilterTag(tag)"
+                            class="px-3 py-1 rounded-full text-xs font-medium transition shadow-sm border flex items-center gap-1 whitespace-nowrap"
+                            :class="filterTags.includes(tag) ? 'text-white border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-dark-surface dark:text-gray-300 dark:border-gray-600'"
+                            :style="filterTags.includes(tag) ? 'background-color:' + getTagColor(tag) : ''">
+                            <span x-text="tag"></span>
+                        </button>
+                    </template>
+                    <button x-show="filterTags.length > 0" @click="filterTags = []"
+                            class="px-3 py-1 rounded-full text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                        <i class="fa-solid fa-xmark mr-1"></i> Réinitialiser
+                    </button>
                 </div>
 
                 <div class="flex-1 flex gap-8 overflow-x-auto pb-4 h-full items-start">
@@ -376,11 +471,37 @@
                                         </div>
                                         <div class="flex flex-wrap gap-1.5 mb-2">
                                             <span x-show="task.urgent" class="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-red-100 dark:border-transparent">Urgent</span>
+                                            <span x-show="task.recurrence && task.recurrence !== 'Aucune'" class="bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-100 dark:border-transparent flex items-center gap-1">
+                                                <i class="fa-solid fa-rotate"></i> <span x-text="task.recurrence"></span>
+                                            </span>
                                             <span x-show="task.projectId" class="bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-300 text-[10px] px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-600 truncate max-w-[120px]" x-text="getProjectName(task.projectId)"></span>
                                         </div>
-                                        
-                                        <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-2 leading-snug" x-text="task.title"></div>
-                                        
+
+                                        <!-- Timer -->
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug flex-1" x-text="task.title"></div>
+                                            <button @click.stop="toggleTimer(task.id)"
+                                                    class="ml-2 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                                                    :class="activeTimer === task.id ? 'bg-red-100 dark:bg-red-900/30 text-red-600 hover:bg-red-200' : 'bg-green-100 dark:bg-green-900/30 text-green-600 hover:bg-green-200'"
+                                                    :title="activeTimer === task.id ? 'Pause' : 'Démarrer'">
+                                                <i class="fa-solid text-xs" :class="activeTimer === task.id ? 'fa-pause' : 'fa-play'"></i>
+                                            </button>
+                                        </div>
+                                        <div x-show="timers[task.id] || activeTimer === task.id"
+                                             class="text-xs font-mono text-primary-600 dark:text-primary-400 mb-2 flex items-center gap-1">
+                                            <i class="fa-solid fa-stopwatch"></i>
+                                            <span x-text="getTimerDisplay(task.id)"></span>
+                                        </div>
+
+                                        <!-- Tags -->
+                                        <div x-show="task.tags && task.tags.length > 0" class="flex flex-wrap gap-1 mb-2">
+                                            <template x-for="tag in task.tags" :key="tag">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-medium text-white"
+                                                      :style="'background-color:' + getTagColor(tag)"
+                                                      x-text="tag"></span>
+                                            </template>
+                                        </div>
+
                                         <div x-show="Object.keys(task.customFields || {}).length > 0" class="flex gap-2 text-xs text-gray-400 dark:text-gray-500 mb-2">
                                             <template x-for="(value, key, index) in task.customFields" :key="key">
                                                 <span x-show="index < 2" class="truncate max-w-[100px]"><strong x-text="key+':'"></strong> <span x-text="value"></span></span>
@@ -633,6 +754,15 @@
                         <input type="date" x-model="tempTask.dueDate" class="input-std bg-white dark:bg-dark-surface">
                     </div>
                     <div>
+                        <label class="label-xs">Récurrence</label>
+                        <select x-model="tempTask.recurrence" class="input-std bg-white dark:bg-dark-surface">
+                            <option value="Aucune">Aucune</option>
+                            <option value="Quotidien">Quotidien</option>
+                            <option value="Hebdo">Hebdomadaire</option>
+                            <option value="Mensuel">Mensuel</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="label-xs">Participants</label>
                         <div class="flex flex-wrap gap-1 mt-1">
                              <template x-for="c in contacts">
@@ -641,6 +771,40 @@
                                     :class="tempTask.participants.includes(c.id) ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white dark:bg-dark-surface border-gray-200 dark:border-gray-600 text-gray-500'"
                                     x-text="getContactInitials(c.id)" :title="c.name"></button>
                              </template>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label-xs">Tags</label>
+                        <div class="space-y-2 mt-1">
+                            <!-- Tags existants sur la tâche -->
+                            <div class="flex flex-wrap gap-1" x-show="tempTask.tags && tempTask.tags.length > 0">
+                                <template x-for="tag in tempTask.tags" :key="tag">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1"
+                                          :style="'background-color:' + getTagColor(tag)">
+                                        <span x-text="tag"></span>
+                                        <button @click="removeTagFromTask(tag)" class="hover:bg-white/20 rounded-full w-4 h-4 flex items-center justify-center">
+                                            <i class="fa-solid fa-xmark text-[10px]"></i>
+                                        </button>
+                                    </span>
+                                </template>
+                            </div>
+                            <!-- Tags suggérés -->
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="tag in suggestedTags">
+                                    <button @click="addTagToTask(tag)"
+                                            x-show="!tempTask.tags || !tempTask.tags.includes(tag)"
+                                            class="px-2 py-1 rounded-full text-xs font-medium border transition hover:opacity-80"
+                                            :style="'background-color:' + getTagColor(tag) + '20; border-color:' + getTagColor(tag) + '; color:' + getTagColor(tag)"
+                                            x-text="tag"></button>
+                                </template>
+                            </div>
+                            <!-- Ajouter un tag personnalisé -->
+                            <div class="flex gap-1">
+                                <input type="text" x-model="newTag" @keyup.enter="newTag.trim() && addTagToTask(newTag)" placeholder="Nouveau tag..." class="input-std flex-1 p-1.5 text-xs bg-white dark:bg-dark-surface">
+                                <button @click="newTag.trim() && addTagToTask(newTag)" type="button" class="px-2 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded text-xs">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div>
@@ -757,12 +921,29 @@
                 searchQuery: '',
                 filterProject: null,
                 filterRoadmapProject: null,
+                currentMonth: new Date().getMonth(),
+                currentYear: new Date().getFullYear(),
 
                 projects: [],
                 tasks: [],
                 contacts: [],
                 toasts: [],
-                
+
+                // Timer
+                activeTimer: null,
+                timerInterval: null,
+                timers: {}, // { taskId: { startTime, elapsed } }
+
+                // Tags
+                filterTags: [],
+                suggestedTags: ['Bug', 'Feature', 'Design', 'Backend', 'Frontend', 'Testing', 'Documentation', 'Urgent', 'Review'],
+                newTag: '',
+
+                // Notifications
+                notificationsEnabled: false,
+                notificationInterval: null,
+                notifiedTasks: [], // IDs des tâches déjà notifiées pour éviter les doublons
+
                 // Config
                 kanbanColumns: ['À faire', 'En cours', 'En attente', 'Terminé'],
                 eisenhowerQuadrants: [
@@ -774,6 +955,7 @@
                 menuItems: [
                     { id: 'dashboard', label: 'Cockpit', icon: 'fa-solid fa-chart-pie' },
                     { id: 'roadmap', label: 'Roadmap', icon: 'fa-solid fa-route' },
+                    { id: 'calendar', label: 'Calendrier', icon: 'fa-solid fa-calendar-days' },
                     { id: 'projects', label: 'Projets', icon: 'fa-solid fa-folder-open' },
                     { id: 'kanban', label: 'Kanban', icon: 'fa-solid fa-table-columns' },
                     { id: 'eisenhower', label: 'Matrice Eisenhower', icon: 'fa-solid fa-border-all' },
@@ -793,6 +975,8 @@
                     }
                     this.load();
                     if(this.projects.length === 0) this.seed();
+                    this.loadTimers();
+                    this.loadNotificationSettings();
                 },
 
                 toggleTheme() {
@@ -826,6 +1010,8 @@
                         if (t.customFields === undefined) t.customFields = {};
                         if (t.notes === undefined) t.notes = '';
                         if (t.order === undefined) t.order = idx;
+                        if (t.recurrence === undefined) t.recurrence = 'Aucune';
+                        if (t.tags === undefined) t.tags = [];
                     });
 
                     // Initialiser l'ordre pour les projets et contacts si nécessaire
@@ -905,7 +1091,7 @@
                     const baseTask = {
                         id: null, title: '', description: '', status: 'À faire', urgent: false, important: false,
                         projectId: this.filterProject||'', participants: [], notes: '', customFields: {},
-                        timeEst: '', timeSpent: '', dueDate: '', checklist: [],
+                        timeEst: '', timeSpent: '', dueDate: '', checklist: [], recurrence: 'Aucune', tags: [],
                         ...defaults
                     };
 
@@ -929,7 +1115,7 @@
                 },
                 saveTask() {
                     if(!this.tempTask.title) return;
-                    
+
                     // CONVERSION POUR LA SAUVEGARDE: Array [{key, value}] -> Object {key:value}
                     const customFieldsObj = {};
                     this.tempTask._customFieldsArray.forEach(f => {
@@ -938,11 +1124,16 @@
                         }
                     });
                     this.tempTask.customFields = customFieldsObj;
-                    
+
                     // Cloner l'objet sans le champ temporaire de l'UI
                     const taskToSave = JSON.parse(JSON.stringify(this.tempTask));
-                    delete taskToSave._customFieldsArray; 
-                    
+                    delete taskToSave._customFieldsArray;
+
+                    // Vérifier si on passe une tâche récurrente à "Terminé"
+                    const wasNotCompleted = this.tempTask.id && this.tasks.find(t => t.id === this.tempTask.id)?.status !== 'Terminé';
+                    const isNowCompleted = taskToSave.status === 'Terminé';
+                    const hasRecurrence = taskToSave.recurrence && taskToSave.recurrence !== 'Aucune';
+
                     if(this.tempTask.id) {
                         const idx = this.tasks.findIndex(t => t.id === this.tempTask.id);
                         this.tasks[idx] = taskToSave;
@@ -950,9 +1141,46 @@
                         taskToSave.id = this.generateId();
                         this.tasks.push(taskToSave);
                     }
+
+                    // Créer la prochaine occurrence si c'est une tâche récurrente qui vient d'être terminée
+                    if(wasNotCompleted && isNowCompleted && hasRecurrence) {
+                        this.createNextRecurrence(taskToSave);
+                    }
+
                     this.save();
                     this.modals.task = false;
                     this.showToast('Succès', 'Tâche enregistrée');
+                },
+                createNextRecurrence(task) {
+                    const newTask = JSON.parse(JSON.stringify(task));
+                    newTask.id = this.generateId();
+                    newTask.status = 'À faire';
+
+                    // Calculer la prochaine date d'échéance
+                    if(task.dueDate) {
+                        const currentDate = new Date(task.dueDate);
+                        let nextDate = new Date(currentDate);
+
+                        switch(task.recurrence) {
+                            case 'Quotidien':
+                                nextDate.setDate(nextDate.getDate() + 1);
+                                break;
+                            case 'Hebdo':
+                                nextDate.setDate(nextDate.getDate() + 7);
+                                break;
+                            case 'Mensuel':
+                                nextDate.setMonth(nextDate.getMonth() + 1);
+                                break;
+                        }
+
+                        const year = nextDate.getFullYear();
+                        const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(nextDate.getDate()).padStart(2, '0');
+                        newTask.dueDate = `${year}-${month}-${day}`;
+                    }
+
+                    this.tasks.push(newTask);
+                    this.showToast('Info', 'Prochaine occurrence créée', 'info');
                 },
                 deleteTask(id) {
                     if(confirm('Supprimer ?')) {
@@ -963,7 +1191,13 @@
                     }
                 },
                 getTasksByStatus(s) {
-                    const filtered = this.tasks.filter(t => t.status === s && (!this.filterProject || t.projectId === this.filterProject) && t.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                    const filtered = this.tasks.filter(t => {
+                        const statusMatch = t.status === s;
+                        const projectMatch = !this.filterProject || t.projectId === this.filterProject;
+                        const searchMatch = t.title.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        const tagMatch = this.filterTags.length === 0 || (t.tags && this.filterTags.some(tag => t.tags.includes(tag)));
+                        return statusMatch && projectMatch && searchMatch && tagMatch;
+                    });
                     // Tri par ordre (si défini), sinon par défaut
                     return filtered.sort((a, b) => {
                         const orderA = a.order !== undefined ? a.order : 999999;
@@ -1021,6 +1255,254 @@
                     }
                 },
 
+                // Tag Functions
+                addTagToTask(tag) {
+                    if(!this.tempTask.tags) this.tempTask.tags = [];
+                    if(!this.tempTask.tags.includes(tag)) {
+                        this.tempTask.tags.push(tag);
+                    }
+                    this.newTag = '';
+                },
+                removeTagFromTask(tag) {
+                    if(this.tempTask.tags) {
+                        this.tempTask.tags = this.tempTask.tags.filter(t => t !== tag);
+                    }
+                },
+                toggleFilterTag(tag) {
+                    if(this.filterTags.includes(tag)) {
+                        this.filterTags = this.filterTags.filter(t => t !== tag);
+                    } else {
+                        this.filterTags.push(tag);
+                    }
+                },
+                getAllUsedTags() {
+                    const tagsSet = new Set();
+                    this.tasks.forEach(t => {
+                        if(t.tags) {
+                            t.tags.forEach(tag => tagsSet.add(tag));
+                        }
+                    });
+                    return Array.from(tagsSet);
+                },
+                getTagColor(tag) {
+                    const colors = {
+                        'Bug': '#ef4444',
+                        'Feature': '#10b981',
+                        'Design': '#8b5cf6',
+                        'Backend': '#f59e0b',
+                        'Frontend': '#3b82f6',
+                        'Testing': '#ec4899',
+                        'Documentation': '#6b7280',
+                        'Urgent': '#dc2626',
+                        'Review': '#14b8a6'
+                    };
+                    return colors[tag] || '#6b7280';
+                },
+
+                // Notification Functions
+                async requestNotificationPermission() {
+                    if (!('Notification' in window)) {
+                        this.showToast('Erreur', 'Les notifications ne sont pas supportées', 'error');
+                        return false;
+                    }
+
+                    if (Notification.permission === 'granted') {
+                        return true;
+                    }
+
+                    if (Notification.permission !== 'denied') {
+                        const permission = await Notification.requestPermission();
+                        return permission === 'granted';
+                    }
+
+                    return false;
+                },
+                async toggleNotifications() {
+                    if(!this.notificationsEnabled) {
+                        const granted = await this.requestNotificationPermission();
+                        if(granted) {
+                            this.notificationsEnabled = true;
+                            this.startNotificationChecks();
+                            localStorage.setItem('pf_notifications', 'true');
+                            this.showToast('Succès', 'Notifications activées');
+                        }
+                    } else {
+                        this.notificationsEnabled = false;
+                        this.stopNotificationChecks();
+                        localStorage.setItem('pf_notifications', 'false');
+                        this.showToast('Info', 'Notifications désactivées', 'info');
+                    }
+                },
+                startNotificationChecks() {
+                    this.checkTaskNotifications();
+                    this.notificationInterval = setInterval(() => {
+                        this.checkTaskNotifications();
+                    }, 60000); // Vérifier toutes les minutes
+                },
+                stopNotificationChecks() {
+                    if(this.notificationInterval) {
+                        clearInterval(this.notificationInterval);
+                        this.notificationInterval = null;
+                    }
+                },
+                checkTaskNotifications() {
+                    if(!this.notificationsEnabled) return;
+
+                    const now = new Date();
+
+                    this.tasks.forEach(task => {
+                        if(task.status === 'Terminé') return;
+                        if(!task.dueDate) return;
+
+                        const dueDate = new Date(task.dueDate);
+                        const timeDiff = dueDate - now;
+                        const minutesDiff = Math.floor(timeDiff / (1000 * 60));
+
+                        // Notification 15 minutes avant l'échéance
+                        if(minutesDiff <= 15 && minutesDiff > 0 && !this.notifiedTasks.includes(task.id + '_15min')) {
+                            this.sendNotification(
+                                '⏰ Échéance proche',
+                                `La tâche "${task.title}" est due dans ${minutesDiff} minutes`,
+                                task.id
+                            );
+                            this.notifiedTasks.push(task.id + '_15min');
+                        }
+
+                        // Notification pour les tâches en retard
+                        if(timeDiff < 0 && !this.notifiedTasks.includes(task.id + '_overdue')) {
+                            this.sendNotification(
+                                '🔴 Tâche en retard',
+                                `La tâche "${task.title}" est en retard`,
+                                task.id
+                            );
+                            this.notifiedTasks.push(task.id + '_overdue');
+                        }
+                    });
+                },
+                sendNotification(title, body, taskId) {
+                    if(Notification.permission === 'granted') {
+                        const notification = new Notification(title, {
+                            body: body,
+                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%233b82f6" width="100" height="100"/><text y="75" font-size="80" fill="white" font-family="sans-serif">⚡</text></svg>',
+                            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%233b82f6" width="100" height="100"/></svg>',
+                            tag: taskId,
+                            requireInteraction: false
+                        });
+
+                        notification.onclick = () => {
+                            window.focus();
+                            const task = this.tasks.find(t => t.id === taskId);
+                            if(task) {
+                                this.currentView = 'kanban';
+                                setTimeout(() => this.openTaskModal(task), 100);
+                            }
+                            notification.close();
+                        };
+                    }
+                },
+                loadNotificationSettings() {
+                    const enabled = localStorage.getItem('pf_notifications') === 'true';
+                    if(enabled && Notification.permission === 'granted') {
+                        this.notificationsEnabled = true;
+                        this.startNotificationChecks();
+                    }
+                },
+
+                // Timer Functions
+                startTimer(taskId) {
+                    // Arrêter le timer actif si un autre est déjà en cours
+                    if(this.activeTimer && this.activeTimer !== taskId) {
+                        this.pauseTimer(this.activeTimer);
+                    }
+
+                    this.activeTimer = taskId;
+
+                    if(!this.timers[taskId]) {
+                        this.timers[taskId] = { startTime: Date.now(), elapsed: 0 };
+                    } else {
+                        this.timers[taskId].startTime = Date.now();
+                    }
+
+                    // Mettre à jour toutes les secondes
+                    this.timerInterval = setInterval(() => {
+                        if(this.activeTimer && this.timers[this.activeTimer]) {
+                            const now = Date.now();
+                            const sessionTime = now - this.timers[this.activeTimer].startTime;
+                            // Forcer la mise à jour de l'affichage
+                            this.$nextTick();
+                        }
+                    }, 1000);
+
+                    this.saveTimers();
+                },
+                pauseTimer(taskId) {
+                    if(this.timers[taskId]) {
+                        const sessionTime = Date.now() - this.timers[taskId].startTime;
+                        this.timers[taskId].elapsed += sessionTime;
+
+                        // Mettre à jour le temps réel de la tâche
+                        const task = this.tasks.find(t => t.id === taskId);
+                        if(task) {
+                            const hours = this.timers[taskId].elapsed / (1000 * 60 * 60);
+                            task.timeSpent = (parseFloat(task.timeSpent || 0) + hours).toFixed(2);
+                            this.save();
+                        }
+                    }
+
+                    if(this.activeTimer === taskId) {
+                        this.activeTimer = null;
+                        clearInterval(this.timerInterval);
+                        this.timerInterval = null;
+                    }
+
+                    // Réinitialiser le timer de cette tâche
+                    if(this.timers[taskId]) {
+                        delete this.timers[taskId];
+                    }
+
+                    this.saveTimers();
+                },
+                toggleTimer(taskId) {
+                    if(this.activeTimer === taskId) {
+                        this.pauseTimer(taskId);
+                    } else {
+                        this.startTimer(taskId);
+                    }
+                },
+                getTimerDisplay(taskId) {
+                    if(!this.timers[taskId]) return '0:00';
+
+                    let totalMs = this.timers[taskId].elapsed;
+                    if(this.activeTimer === taskId) {
+                        totalMs += Date.now() - this.timers[taskId].startTime;
+                    }
+
+                    const totalSeconds = Math.floor(totalMs / 1000);
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+
+                    if(hours > 0) {
+                        return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    }
+                    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+                },
+                saveTimers() {
+                    localStorage.setItem('pf_timers', JSON.stringify({
+                        activeTimer: this.activeTimer,
+                        timers: this.timers
+                    }));
+                },
+                loadTimers() {
+                    const data = JSON.parse(localStorage.getItem('pf_timers') || '{}');
+                    if(data.timers) {
+                        this.timers = data.timers;
+                        if(data.activeTimer) {
+                            this.startTimer(data.activeTimer);
+                        }
+                    }
+                },
+
                 // Contact Management
                 openContactModal(c = null) {
                     this.tempContact = c ? JSON.parse(JSON.stringify(c)) : { id: null, name: '', email: '', org: '', phone: '' };
@@ -1063,7 +1545,91 @@
                 openModalForView() {
                     if(this.currentView === 'contacts') this.openContactModal();
                     else if(this.currentView === 'projects') this.openProjectModal();
+                    else if(this.currentView === 'calendar') this.openTaskModal();
                     else this.openTaskModal();
+                },
+
+                // Calendar Functions
+                prevMonth() {
+                    if(this.currentMonth === 0) {
+                        this.currentMonth = 11;
+                        this.currentYear--;
+                    } else {
+                        this.currentMonth--;
+                    }
+                },
+                nextMonth() {
+                    if(this.currentMonth === 11) {
+                        this.currentMonth = 0;
+                        this.currentYear++;
+                    } else {
+                        this.currentMonth++;
+                    }
+                },
+                getMonthName() {
+                    const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                                    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                    return months[this.currentMonth];
+                },
+                getCalendarDays() {
+                    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+                    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+                    const daysInMonth = lastDay.getDate();
+                    const startDayOfWeek = (firstDay.getDay() + 6) % 7; // Lundi = 0
+
+                    const days = [];
+
+                    // Jours du mois précédent
+                    const prevMonthLastDay = new Date(this.currentYear, this.currentMonth, 0).getDate();
+                    for(let i = startDayOfWeek - 1; i >= 0; i--) {
+                        days.push({
+                            day: prevMonthLastDay - i,
+                            isCurrentMonth: false,
+                            date: new Date(this.currentYear, this.currentMonth - 1, prevMonthLastDay - i)
+                        });
+                    }
+
+                    // Jours du mois actuel
+                    for(let i = 1; i <= daysInMonth; i++) {
+                        days.push({
+                            day: i,
+                            isCurrentMonth: true,
+                            date: new Date(this.currentYear, this.currentMonth, i)
+                        });
+                    }
+
+                    // Jours du mois suivant
+                    const remainingDays = 42 - days.length; // 6 semaines
+                    for(let i = 1; i <= remainingDays; i++) {
+                        days.push({
+                            day: i,
+                            isCurrentMonth: false,
+                            date: new Date(this.currentYear, this.currentMonth + 1, i)
+                        });
+                    }
+
+                    return days;
+                },
+                getTasksForDate(date) {
+                    return this.tasks.filter(t => {
+                        if(!t.dueDate) return false;
+                        const taskDate = new Date(t.dueDate);
+                        return taskDate.getDate() === date.getDate() &&
+                               taskDate.getMonth() === date.getMonth() &&
+                               taskDate.getFullYear() === date.getFullYear();
+                    });
+                },
+                isToday(date) {
+                    const today = new Date();
+                    return date.getDate() === today.getDate() &&
+                           date.getMonth() === today.getMonth() &&
+                           date.getFullYear() === today.getFullYear();
+                },
+                createTaskForDate(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    this.openTaskModal({ dueDate: `${year}-${month}-${day}` });
                 },
 
                 // Sortable - Kanban avec réorganisation dans les colonnes
@@ -1513,8 +2079,21 @@
                 }
             }
         }
+
+        // Enregistrement du Service Worker pour PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker enregistré:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Échec enregistrement Service Worker:', error);
+                    });
+            });
+        }
     </script>
-    
+
     <style>
         .input-std { @apply w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500/50 outline-none dark:bg-dark-bg dark:text-white transition; }
         .label-xs { @apply text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 block; }
