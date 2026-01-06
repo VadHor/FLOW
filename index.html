@@ -446,8 +446,22 @@
                                             </span>
                                             <span x-show="task.projectId" class="bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-300 text-[10px] px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-600 truncate max-w-[120px]" x-text="getProjectName(task.projectId)"></span>
                                         </div>
-                                        
-                                        <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm mb-2 leading-snug" x-text="task.title"></div>
+
+                                        <!-- Timer -->
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug flex-1" x-text="task.title"></div>
+                                            <button @click.stop="toggleTimer(task.id)"
+                                                    class="ml-2 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                                                    :class="activeTimer === task.id ? 'bg-red-100 dark:bg-red-900/30 text-red-600 hover:bg-red-200' : 'bg-green-100 dark:bg-green-900/30 text-green-600 hover:bg-green-200'"
+                                                    :title="activeTimer === task.id ? 'Pause' : 'Démarrer'">
+                                                <i class="fa-solid text-xs" :class="activeTimer === task.id ? 'fa-pause' : 'fa-play'"></i>
+                                            </button>
+                                        </div>
+                                        <div x-show="timers[task.id] || activeTimer === task.id"
+                                             class="text-xs font-mono text-primary-600 dark:text-primary-400 mb-2 flex items-center gap-1">
+                                            <i class="fa-solid fa-stopwatch"></i>
+                                            <span x-text="getTimerDisplay(task.id)"></span>
+                                        </div>
                                         
                                         <div x-show="Object.keys(task.customFields || {}).length > 0" class="flex gap-2 text-xs text-gray-400 dark:text-gray-500 mb-2">
                                             <template x-for="(value, key, index) in task.customFields" :key="key">
@@ -841,6 +855,11 @@
                 tasks: [],
                 contacts: [],
                 toasts: [],
+
+                // Timer
+                activeTimer: null,
+                timerInterval: null,
+                timers: {}, // { taskId: { startTime, elapsed } }
                 
                 // Config
                 kanbanColumns: ['À faire', 'En cours', 'En attente', 'Terminé'],
@@ -873,6 +892,7 @@
                     }
                     this.load();
                     if(this.projects.length === 0) this.seed();
+                    this.loadTimers();
                 },
 
                 toggleTheme() {
@@ -1141,6 +1161,101 @@
                         this.tasks = this.tasks.filter(t => t.projectId !== id);
                         this.save();
                         this.showToast('Supprimé', 'Projet archivé', 'info');
+                    }
+                },
+
+                // Timer Functions
+                startTimer(taskId) {
+                    // Arrêter le timer actif si un autre est déjà en cours
+                    if(this.activeTimer && this.activeTimer !== taskId) {
+                        this.pauseTimer(this.activeTimer);
+                    }
+
+                    this.activeTimer = taskId;
+
+                    if(!this.timers[taskId]) {
+                        this.timers[taskId] = { startTime: Date.now(), elapsed: 0 };
+                    } else {
+                        this.timers[taskId].startTime = Date.now();
+                    }
+
+                    // Mettre à jour toutes les secondes
+                    this.timerInterval = setInterval(() => {
+                        if(this.activeTimer && this.timers[this.activeTimer]) {
+                            const now = Date.now();
+                            const sessionTime = now - this.timers[this.activeTimer].startTime;
+                            // Forcer la mise à jour de l'affichage
+                            this.$nextTick();
+                        }
+                    }, 1000);
+
+                    this.saveTimers();
+                },
+                pauseTimer(taskId) {
+                    if(this.timers[taskId]) {
+                        const sessionTime = Date.now() - this.timers[taskId].startTime;
+                        this.timers[taskId].elapsed += sessionTime;
+
+                        // Mettre à jour le temps réel de la tâche
+                        const task = this.tasks.find(t => t.id === taskId);
+                        if(task) {
+                            const hours = this.timers[taskId].elapsed / (1000 * 60 * 60);
+                            task.timeSpent = (parseFloat(task.timeSpent || 0) + hours).toFixed(2);
+                            this.save();
+                        }
+                    }
+
+                    if(this.activeTimer === taskId) {
+                        this.activeTimer = null;
+                        clearInterval(this.timerInterval);
+                        this.timerInterval = null;
+                    }
+
+                    // Réinitialiser le timer de cette tâche
+                    if(this.timers[taskId]) {
+                        delete this.timers[taskId];
+                    }
+
+                    this.saveTimers();
+                },
+                toggleTimer(taskId) {
+                    if(this.activeTimer === taskId) {
+                        this.pauseTimer(taskId);
+                    } else {
+                        this.startTimer(taskId);
+                    }
+                },
+                getTimerDisplay(taskId) {
+                    if(!this.timers[taskId]) return '0:00';
+
+                    let totalMs = this.timers[taskId].elapsed;
+                    if(this.activeTimer === taskId) {
+                        totalMs += Date.now() - this.timers[taskId].startTime;
+                    }
+
+                    const totalSeconds = Math.floor(totalMs / 1000);
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+
+                    if(hours > 0) {
+                        return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    }
+                    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+                },
+                saveTimers() {
+                    localStorage.setItem('pf_timers', JSON.stringify({
+                        activeTimer: this.activeTimer,
+                        timers: this.timers
+                    }));
+                },
+                loadTimers() {
+                    const data = JSON.parse(localStorage.getItem('pf_timers') || '{}');
+                    if(data.timers) {
+                        this.timers = data.timers;
+                        if(data.activeTimer) {
+                            this.startTimer(data.activeTimer);
+                        }
                     }
                 },
 
